@@ -1,0 +1,43 @@
+# Go specific
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go binary and object files
+*.o
+*.a
+
+# Compiled output
+/bin
+/release
+/dist
+
+# Dependency directories
+/vendor
+/go.sum
+
+# IDE-specific files
+.idea
+.vscode
+*.code-workspace
+
+# Test cache
+/.cache
+
+# Build cache
+/.build
+
+# Log files
+*.log
+
+# macOS specific
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini

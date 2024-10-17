@@ -1,4 +1,4 @@
-module github.com/jhuntdev/uuid-v9
+module github.com/jhuntdev/uuidv9-go
 
 go 1.20
 

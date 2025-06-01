@@ -175,8 +175,14 @@ type UUIDv9Options struct {
 //   - Checksum: If true, includes a checksum in the last 2 characters
 //   - Version: If true, sets the version character to '9'
 //   - Legacy: If true, makes the UUID compatible with v1 or v4 format
-func UUIDv9(options UUIDv9Options) (string, error) {
+func UUIDv9(optionalOptions ...UUIDv9Options) (string, error) {
 	// Get config from options
+	var options UUIDv9Options
+	if len(optionalOptions) > 0 {
+		options = optionalOptions[0]
+	} else {
+		options = UUIDv9Options{} // Default options
+	}
 	prefix := options.Prefix
 	timestamp := options.Timestamp
 	checksum := options.Checksum

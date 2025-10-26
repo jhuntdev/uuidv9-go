@@ -1,4 +1,4 @@
-package uuid
+package uuidv9
 
 import (
 	"crypto/rand"
@@ -175,7 +175,7 @@ type UUIDv9Options struct {
 //   - Checksum: If true, includes a checksum in the last 2 characters
 //   - Version: If true, sets the version character to '9'
 //   - Legacy: If true, makes the UUID compatible with v1 or v4 format
-func UUIDv9(optionalOptions ...UUIDv9Options) (string, error) {
+func uuidv9(optionalOptions ...UUIDv9Options) (string, error) {
 	// Get config from options
 	var options UUIDv9Options
 	if len(optionalOptions) > 0 {

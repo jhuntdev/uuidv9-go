@@ -1,6 +1,6 @@
 module github.com/jhuntdev/uuidv9-go
 
-go 1.20
+go 1.25
 
 require github.com/stretchr/testify v1.10.0
 

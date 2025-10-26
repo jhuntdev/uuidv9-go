@@ -25,28 +25,16 @@ import {
 
 func main() {
 	orderedID := UUIDv9()
-	prefixedOrderedID := UUIDv9(Option{Prefix: "a1b2c3d4"})
-	unorderedID := UUIDv9(Option{Timestamp: false})
-	prefixedUnorderedID := UUIDv9(Option{Prefix: "a1b2c3d4", Timestamp: false})
-	orderedIDWithChecksum := UUIDv9(Option{Checksum: true})
-	orderedIDWithVersion := UUIDv9(Option{Version: true})
-	orderedIDWithLegacyMode := UUIDv9(Option{Legacy: true})
+	prefixedOrderedID := UUIDv9(UUIDv9Options{Prefix: "a1b2c3d4"})
+	unorderedID := UUIDv9(UUIDv9Options{Timestamp: false})
+	prefixedUnorderedID := UUIDv9(UUIDv9Options{Prefix: "a1b2c3d4", Timestamp: false})
+	orderedIDWithChecksum := UUIDv9(UUIDv9Options{Checksum: true})
+	orderedIDWithVersion := UUIDv9(UUIDv9Options{Version: true})
+	orderedIDWithLegacyMode := UUIDv9(UUIDv9Options{Legacy: true})
 
 	isValid := isValidUUIDv9(orderedID)
-	isValidWithChecksum := isValidUUIDv9(orderedIDWithChecksum, Option{Checksum: true})
-	isValidWithVersion := isValidUUIDv9(orderedIDWithVersion, Option{Version: true})
-
-	// orderedId = uuidv9()
-	// prefixedOrderedId = uuidv9({ prefix: 'a1b2c3d4' })
-	// unorderedId = uuidv9({ timestamp: false })
-	// prefixedUnorderedId = uuidv9({ prefix: 'a1b2c3d4', timestamp: false })
-	// orderedIdWithChecksum = uuidv9({ checksum: true })
-	// orderedIdWithVersion = uuidv9({ version: true })
-	// orderedIdWithLegacyMode = uuidv9({ legacy: true })
-
-	// isValid = isValidUUIDv9(orderedId)
-	// isValidWithChecksum = isValidUUIDv9(orderedIdWithChecksum, { checksum: true })
-	// isValidWithVersion = isValidUUIDv9(orderedIdWithVersion, { version: true })
+	isValidWithChecksum := isValidUUIDv9(orderedIDWithChecksum, isValidUUIDv9Options{Checksum: true})
+	isValidWithVersion := isValidUUIDv9(orderedIDWithVersion, isValidUUIDv9Options{Version: true})
 }
 ```
 

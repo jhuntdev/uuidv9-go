@@ -24,7 +24,7 @@ func calcChecksum(hexString string) string {
 	const polynomial byte = 0x07
 	var crc byte = 0x00
 
-	for i, byteVal := range data {
+	for _, byteVal := range data {
 		crc ^= byteVal
 		for j := 0; j < 8; j++ {
 			if crc&0x80 != 0 {
@@ -33,11 +33,11 @@ func calcChecksum(hexString string) string {
 				crc <<= 1
 			}
 		}
-		fmt.Printf("After byte %d (0x%02x): crc=0x%02x\n", i, byteVal, crc)
+		// fmt.Printf("After byte %d (0x%02x): crc=0x%02x\n", i, byteVal, crc)
 	}
 
 	result := fmt.Sprintf("%02x", crc&0xFF)
-	fmt.Printf("Final checksum for '%s': %s\n", hexString, result)
+	// fmt.Printf("Final checksum for '%s': %s\n", hexString, result)
 	return result
 }
 
@@ -56,8 +56,8 @@ func verifyChecksum(uuid string) bool {
 
 	// Remove dashes and extract the first 30 chars for checksum calculation
 	cleanUuid := strings.ReplaceAll(uuid, "-", "")
-	if len(cleanUuid) < 32 {
-		fmt.Printf("Clean UUID too short: %s\n", cleanUuid)
+	if len(cleanUuid) != 32 {
+		fmt.Printf("Clean UUID wrong length: %s\n", cleanUuid)
 		return false
 	}
 
@@ -66,9 +66,9 @@ func verifyChecksum(uuid string) bool {
 	calculated := calcChecksum(base16String)
 	actual := uuid[34:36]
 
-	fmt.Printf("Verifying UUID: %s\n", uuid)
-	fmt.Printf("Clean UUID (first 30): %s\n", base16String)
-	fmt.Printf("Calculated checksum: %s, Actual checksum at position 34-36: %s\n", calculated, actual)
+	// fmt.Printf("Verifying UUID: %s\n", uuid)
+	// fmt.Printf("Clean UUID (first 30): %s\n", base16String)
+	// fmt.Printf("Calculated checksum: %s, Actual checksum at position 34-36: %s\n", calculated, actual)
 
 	return calculated == actual
 }
@@ -96,12 +96,12 @@ func isUUID(uuid string) bool {
 	return uuidRegex.MatchString(uuid)
 }
 
-type validateUUIDv9Options struct {
+type isValidUUIDv9Options struct {
 	Checksum bool
 	Version  bool
 }
 
-func isValidUUIDv9(uuid string, options validateUUIDv9Options) bool {
+func isValidUUIDv9(uuid string, options isValidUUIDv9Options) bool {
 	if !isUUID(uuid) {
 		return false
 	}

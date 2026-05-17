@@ -149,6 +149,16 @@ func validatePrefix(prefix string) error {
 	return nil
 }
 
+func validateSuffix(suffix string) error {
+	if len(suffix) > 4 {
+		return fmt.Errorf("suffix must be no more than 4 characters")
+	}
+	if !isBase16(suffix) {
+		return fmt.Errorf("suffix must be only hexadecimal characters")
+	}
+	return nil
+}
+
 func addDashes(str string) string {
 	// Ensure the string is exactly 32 characters
 	if len(str) > 32 {
@@ -165,6 +175,7 @@ type UUIDv9Options struct {
 	Checksum  bool
 	Version   bool
 	Legacy    bool
+	Suffix    string
 }
 
 // UUIDv9 generates a UUID version 9 string
@@ -188,6 +199,7 @@ func UUIDv9(optionalOptions ...UUIDv9Options) (string, error) {
 	checksum := options.Checksum
 	version := options.Version
 	legacy := options.Legacy
+	suffix := options.Suffix
 
 	// Apply default to timestamp if not specified
 	if timestamp == nil {
@@ -200,6 +212,14 @@ func UUIDv9(optionalOptions ...UUIDv9Options) (string, error) {
 			return "", err
 		}
 		prefix = strings.ToLower(prefix)
+	}
+
+	// Validate the suffix is base16 (lowercase hex only)
+	if suffix != "" {
+		if err := validateSuffix(suffix); err != nil {
+			return "", err
+		}
+		prefix = strings.ToLower(suffix)
 	}
 
 	// Generate timestamp component if requested

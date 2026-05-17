@@ -42,12 +42,13 @@ func checkVersion(uuid string, version *int) bool {
 	versionDigit := uuid[14:15]
 	variantDigit := uuid[19:20]
 
-	if version == nil || string(versionDigit) == fmt.Sprint(*version) {
-		if string(versionDigit) == "9" || (strings.Contains("14", string(versionDigit)) && strings.Contains("89abAB", variantDigit)) {
-			return true
-		}
+	if version == nil {
+		return true
+	} else if versionDigit == fmt.Sprint(*version) && strings.Contains("89abAB", variantDigit) {
+		return true
+	} else {
+		return false
 	}
-	return false
 }
 
 func isUUID(uuid string) bool {

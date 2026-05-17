@@ -1,4 +1,4 @@
-package uuidv9
+package uuid
 
 import (
 	"crypto/rand"
@@ -10,85 +10,43 @@ import (
 	"time"
 )
 
-var uuidRegex = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+var uuidRegex = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
 func calcChecksum(hexString string) string {
-	// This function must match the Python implementation exactly
 	data := make([]byte, len(hexString)/2)
-	_, err := hex.Decode(data, []byte(hexString))
-	if err != nil {
-		fmt.Printf("Error decoding hex in calcChecksum: %v\n", err)
-		return "00" // Return a default in case of error
-	}
+	_, _ = hex.Decode(data, []byte(hexString))
 
 	const polynomial byte = 0x07
 	var crc byte = 0x00
 
 	for _, byteVal := range data {
 		crc ^= byteVal
-		for j := 0; j < 8; j++ {
+		for i := 0; i < 8; i++ {
 			if crc&0x80 != 0 {
 				crc = (crc << 1) ^ polynomial
 			} else {
 				crc <<= 1
 			}
 		}
-		// fmt.Printf("After byte %d (0x%02x): crc=0x%02x\n", i, byteVal, crc)
 	}
-
-	result := fmt.Sprintf("%02x", crc&0xFF)
-	// fmt.Printf("Final checksum for '%s': %s\n", hexString, result)
-	return result
+	return fmt.Sprintf("%02x", crc)
 }
 
 func verifyChecksum(uuid string) bool {
-	// This function needs to exactly match Python's verify_checksum behavior
-	// Python: def verify_checksum(uuid):
-	//    clean_uuid = uuid.replace('-', '')[0:30]
-	//    checksum = calc_checksum(clean_uuid)
-	//    return checksum == uuid[34:36]
-
-	// Only work with properly formatted UUIDs
-	if !uuidRegex.MatchString(uuid) {
-		fmt.Printf("UUID doesn't match regex: %s\n", uuid)
-		return false
-	}
-
-	// Remove dashes and extract the first 30 chars for checksum calculation
-	cleanUuid := strings.ReplaceAll(uuid, "-", "")
-	if len(cleanUuid) != 32 {
-		fmt.Printf("Clean UUID wrong length: %s\n", cleanUuid)
-		return false
-	}
-
-	// Calculate checksum on first 30 characters
-	base16String := cleanUuid[:30]
-	calculated := calcChecksum(base16String)
-	actual := uuid[34:36]
-
-	// fmt.Printf("Verifying UUID: %s\n", uuid)
-	// fmt.Printf("Clean UUID (first 30): %s\n", base16String)
-	// fmt.Printf("Calculated checksum: %s, Actual checksum at position 34-36: %s\n", calculated, actual)
-
-	return calculated == actual
+	base16String := strings.ReplaceAll(uuid, "-", "")[:30]
+	crc := calcChecksum(base16String)
+	return crc == uuid[34:36]
 }
 
 func checkVersion(uuid string, version *int) bool {
 	versionDigit := uuid[14:15]
 	variantDigit := uuid[19:20]
 
-	if version == nil {
-		return versionDigit == "9" || ((versionDigit == "1" || versionDigit == "4") && strings.Contains("89abAB", variantDigit))
-	}
-
-	versionStr := fmt.Sprint(*version)
-	if versionDigit == versionStr {
-		if versionStr == "1" || versionStr == "4" {
-			return strings.Contains("89abAB", variantDigit)
+	if version == nil || string(versionDigit) == fmt.Sprint(*version) {
+		if string(versionDigit) == "9" || (strings.Contains("14", string(versionDigit)) && strings.Contains("89abAB", variantDigit)) {
+			return true
 		}
-		return true
 	}
-
 	return false
 }
 
@@ -96,36 +54,34 @@ func isUUID(uuid string) bool {
 	return uuidRegex.MatchString(uuid)
 }
 
-type isValidUUIDv9Options struct {
+type validateUUIDv9Options struct {
 	Checksum bool
-	Version  bool
+	Version  int
 }
 
-func isValidUUIDv9(uuid string, options isValidUUIDv9Options) bool {
+func isValidUUIDv9(uuid string, options validateUUIDv9Options) bool {
 	if !isUUID(uuid) {
 		return false
 	}
-	if options.Checksum && !verifyChecksum(uuid) {
+	if options.Checksum != false && options.Checksum && !verifyChecksum(uuid) {
 		return false
 	}
-	if options.Version && !checkVersion(uuid, nil) {
+	if options.Version != 0 && !checkVersion(uuid, nil) {
 		return false
 	}
 	return true
 }
 
-func randomBytes(count int) (string, error) {
-	bytes := make([]byte, count)
+func randomHexadecimals(count int) (string, error) {
+	bytes := make([]byte, (count+1)/2)
+
 	_, err := rand.Read(bytes)
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%x", bytes), nil
-}
 
-// func randomChar(chars string) string {
-// 	return string(chars[rand.Int(0, big.NewInt(int64(len(chars))))])
-// }
+	return fmt.Sprintf("%x", bytes)[:count], nil
+}
 
 func randomChar(chars string) string {
 	n := len(chars)
@@ -160,12 +116,6 @@ func validateSuffix(suffix string) error {
 }
 
 func addDashes(str string) string {
-	// Ensure the string is exactly 32 characters
-	if len(str) > 32 {
-		str = str[:32]
-	} else if len(str) < 32 {
-		str = str + strings.Repeat("0", 32-len(str))
-	}
 	return fmt.Sprintf("%s-%s-%s-%s-%s", str[:8], str[8:12], str[12:16], str[16:20], str[20:])
 }
 
@@ -178,167 +128,87 @@ type UUIDv9Options struct {
 	Suffix    string
 }
 
-// UUIDv9 generates a UUID version 9 string
-// This is compatible with the Python implementation
-// Options:
-//   - Prefix: Optional prefix for the UUID (up to 8 hexadecimal characters)
-//   - Timestamp: If true or nil, includes current timestamp; can be custom int or time.Time
-//   - Checksum: If true, includes a checksum in the last 2 characters
-//   - Version: If true, sets the version character to '9'
-//   - Legacy: If true, makes the UUID compatible with v1 or v4 format
-func UUIDv9(optionalOptions ...UUIDv9Options) (string, error) {
-	// Get config from options
-	var options UUIDv9Options
-	if len(optionalOptions) > 0 {
-		options = optionalOptions[0]
-	} else {
-		options = UUIDv9Options{} // Default options
-	}
-	prefix := options.Prefix
-	timestamp := options.Timestamp
-	checksum := options.Checksum
-	version := options.Version
-	legacy := options.Legacy
-	suffix := options.Suffix
-
-	// Apply default to timestamp if not specified
-	if timestamp == nil {
-		timestamp = true
-	}
-
-	// Validate the prefix is base16 (lowercase hex only)
-	if prefix != "" {
-		if err := validatePrefix(prefix); err != nil {
+func uuidv9(options UUIDv9Options) (string, error) {
+	var prefix string
+	if options.Prefix != "" {
+		if err := validatePrefix(options.Prefix); err != nil {
 			return "", err
 		}
-		prefix = strings.ToLower(prefix)
+		prefix = strings.ToLower(options.Prefix)
 	}
 
-	// Validate the suffix is base16 (lowercase hex only)
-	if suffix != "" {
-		if err := validateSuffix(suffix); err != nil {
+	var suffix string
+	if options.Suffix != "" {
+		if err := validateSuffix(options.Suffix); err != nil {
 			return "", err
 		}
-		prefix = strings.ToLower(suffix)
+		suffix = strings.ToLower(options.Suffix)
 	}
 
-	// Generate timestamp component if requested
-	center := ""
-	if timestamp == true {
-		// Convert nanoseconds to milliseconds to match Python behavior
-		timeMs := time.Now().UnixNano() / 1000000
-		center = fmt.Sprintf("%x", timeMs)
+	var center string
+	switch t := options.Timestamp.(type) {
+	case time.Time:
+		center = fmt.Sprintf("%x", t.UnixNano())
+	case int, string:
+		var ts time.Time
+		switch v := t.(type) {
+		case int:
+			ts = time.Unix(int64(v), 0)
+		case string:
+			parsedTime, err := time.Parse(time.RFC3339, v)
+			if err == nil {
+				ts = parsedTime
+			}
+		}
+		center = fmt.Sprintf("%x", ts.UnixNano())
+	default:
+		if options.Timestamp != false {
+			center = fmt.Sprintf("%x", time.Now().UnixNano())
+		}
 	}
 
-	// Calculate how many random bytes are needed based on options
-	// Base UUID is 32 hex chars (16 bytes)
-	length := 32 - len(prefix) - len(center)
+	var checksum = false
+	if options.Checksum {
+		checksum = options.Checksum
+	}
 
-	// Adjust for optional components
+	var version = false
+	if options.Version {
+		version = options.Version
+	}
+
+	var legacy = false
+	if options.Legacy {
+		legacy = options.Legacy
+	}
+
+	var length = 32 - len(prefix) - len(suffix) - len(center)
 	if checksum {
-		length -= 2 // reserve 2 chars (1 byte) for checksum
+		length -= 2
 	}
-
 	if legacy {
-		length -= 2 // reserve 2 chars (1 byte) for legacy UUID v1/v4 marking
+		length -= 2
 	} else if version {
-		length -= 1 // reserve 1 char (half-byte) for version marking
+		length -= 2
 	}
-
-	// Ensure we're generating a full UUID (32 hex chars)
-	if length < 0 {
-		length = 0 // Safety check for very long prefixes
-	}
-
-	// Each byte produces 2 hex chars, so divide by 2
-	suffix, err := randomBytes(length / 2)
+	random, err := randomHexadecimals(length)
 	if err != nil {
 		return "", err
 	}
 
-	// Join all components
-	joined := prefix + center + suffix
-
-	// Add version and variant if requested
+	joined := prefix + center + random + suffix
 	if legacy {
-		// Match Python implementation: Place a '1' or '4' at position 12, and variant at position 16
-		pos12 := 12
-		pos16 := 16
-
-		if len(joined) < pos12+1 {
-			// Add padding if needed
-			joined = fmt.Sprintf("%0*s", pos12+1, joined)
+		var versionDigit = "4"
+		if options.Timestamp != false {
+			versionDigit = "1"
 		}
-
-		// Take parts before and after position 12
-		part1 := joined[:pos12]
-		part2 := ""
-
-		if len(joined) > pos12 {
-			part2 = joined[pos12+1:]
-		}
-
-		// Insert '1' or '4' at position 12
-		timeChar := "1"
-		if timestamp == false {
-			timeChar = "4"
-		}
-
-		joined = part1 + timeChar + part2
-
-		// Add variant at position 16
-		if len(joined) < pos16+1 {
-			// Add padding if needed
-			joined = fmt.Sprintf("%0*s", pos16+1, joined)
-		}
-
-		// Take parts before and after position 16
-		part1 = joined[:pos16]
-		part2 = ""
-
-		if len(joined) > pos16 {
-			part2 = joined[pos16+1:]
-		}
-
-		// Add a random variant character ('8', '9', 'a', or 'b')
-		variant := randomChar("89ab")
-
-		joined = part1 + variant + part2
+		joined = joined[:12] + versionDigit + joined[12:15] + randomChar("89ab") + joined[15:]
 	} else if version {
-		// Add a '9' at position 12 to indicate UUIDv9
-		pos12 := 12
-
-		if len(joined) < pos12+1 {
-			// Add padding if needed
-			joined = fmt.Sprintf("%0*s", pos12+1, joined)
-		}
-
-		// Take parts before and after position 12
-		part1 := joined[:pos12]
-		part2 := ""
-
-		if len(joined) > pos12 {
-			part2 = joined[pos12+1:]
-		}
-
-		// Insert '9' at position 12
-		joined = part1 + "9" + part2
+		joined = joined[:12] + "9" + joined[12:15] + randomChar("89ab") + joined[15:]
 	}
 
-	// Create a dashed UUID without the checksum first
-	uuidWithoutChecksum := addDashes(joined)
-
-	// Add checksum if requested - Must be added AFTER version is set
 	if checksum {
-		// Calculate checksum on the first 30 chars of the UUID without dashes
-		cleanUuid := strings.ReplaceAll(uuidWithoutChecksum, "-", "")
-		base16String := cleanUuid[:30]
-		checksum := calcChecksum(base16String)
-
-		// Replace the last two characters of the UUID with the checksum
-		// so that it appears at positions 34-36 in the final dashed format
-		return uuidWithoutChecksum[:34] + checksum, nil
+		joined += calcChecksum(joined)
 	}
-
-	return uuidWithoutChecksum, nil
+	return addDashes(joined), nil
 }
